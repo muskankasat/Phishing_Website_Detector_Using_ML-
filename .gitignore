@@ -1,0 +1,17 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.DS_Store
+data/*.csv
+models/*.joblib
+results/*.csv
+results/*.json
+!data/README.md
+!results/README.md
+
+# Keep the small, hand-curated literature table
+!results/literature_comparison.csv
+.pytest_cache/
+.ruff_cache/

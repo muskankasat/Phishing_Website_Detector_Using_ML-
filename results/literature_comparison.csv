@@ -1,0 +1,5 @@
+Source,Model(s),Reported result,Dataset note,URL
+"Phishing Attacks and Websites Classification Using Machine Learning and Multiple Datasets (arXiv 2101.02552)","Random Forest, Artificial Neural Network","over 97% accuracy","UCI Phishing Websites, 11,055 instances, 30 features","https://arxiv.org/pdf/2101.02552"
+"A Sophisticated Framework for the Accurate Detection of Phishing Websites (arXiv 2403.09735)","Proposed algorithm","97.49% accuracy","Dataset-1 = UCI Phishing Websites (11,055 rows)","https://arxiv.org/pdf/2403.09735"
+"Comparative evaluation of machine learning algorithms for phishing site detection (PMC11232597)","XGBoost (after hyperparameter tuning); Random Forest","XGBoost 98% accuracy; Random Forest 96% accuracy","UCI dataset (11,055 records)","https://pmc.ncbi.nlm.nih.gov/articles/PMC11232597/"
+"Phishing website prediction using base and ensemble classifier techniques with cross-validation (Cybersecurity, Springer)","Extra Trees, XGBoost","best result 99.18% accuracy across two datasets","One dataset has 2,456 instances, the other 11,055; mapping of each score to dataset not verified","https://link.springer.com/article/10.1186/s42400-022-00126-9"
