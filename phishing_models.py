@@ -58,7 +58,8 @@ def build_models():
             n_estimators=300, learning_rate=0.1, num_leaves=31,
             random_state=RANDOM_STATE, verbose=-1),
         "CatBoost": CatBoostClassifier(
-            iterations=500, learning_rate=0.1, depth=6, random_seed=RANDOM_STATE, verbose=0),
+            iterations=500, learning_rate=0.1, depth=6, random_seed=RANDOM_STATE, verbose=0,
+            allow_writing_files=False),  # do not create a catboost_info/ folder
         # Integer labels are required by MLP early stopping in recent scikit-learn.
         "MLP (Neural Network)": LabelEncodedClassifier(Pipeline([
             ("scaler", StandardScaler()),
