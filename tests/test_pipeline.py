@@ -70,5 +70,28 @@ def test_streamlit_app_runs_without_exception():
 
     at = AppTest.from_file(str(ROOT / "app.py"), default_timeout=90).run()
     assert not at.exception
+    # Use a held-out feature row so the button path does not need a live URL fetch.
+    at.radio[0].set_value("Use a test-set example").run()
+    assert not at.exception
     at.button[0].click().run()
     assert not at.exception
+
+
+def test_url_feature_extractor_address_bar_signals():
+    from url_features import extract_features
+
+    ip = extract_features("http://125.98.3.123/fake.html", fetch_page=False)
+    assert ip["features"]["having_ip_address"] == -1
+
+    short = extract_features("https://bit.ly/demo", fetch_page=False)
+    assert short["features"]["shortining_service"] == -1
+
+    hyphen = extract_features("http://confirm-paypal.com/", fetch_page=False)
+    assert hyphen["features"]["prefix_suffix"] == -1
+
+    https_token = extract_features("http://https-www-paypal.com/", fetch_page=False)
+    assert https_token["features"]["https_token"] == -1
+
+    legitish = extract_features("https://www.example.com/", fetch_page=False)
+    assert legitish["features"]["having_ip_address"] == 1
+    assert len(legitish["features"]) == 30

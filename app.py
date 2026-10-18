@@ -10,6 +10,7 @@ import pandas as pd
 import streamlit as st
 
 import phishing_models  # noqa: F401  (required so joblib can unpickle the saved models)
+from url_features import extract_features
 
 ROOT = Path(__file__).resolve().parent
 BUNDLE_PATH = ROOT / "models" / "model_bundle.joblib"
@@ -37,11 +38,47 @@ def show_image(name, caption):
         st.image(str(path), caption=caption, width="stretch")
 
 
+def render_prediction(models, selected, feature_names, input_values, compare_all, actual_label=None):
+    input_df = pd.DataFrame([[input_values[f] for f in feature_names]], columns=feature_names)
+    model = models[selected]
+    prediction = model.predict(input_df)[0]
+    st.divider()
+    left, right = st.columns(2)
+    with left:
+        if prediction == "Phishing":
+            st.error("Prediction: PHISHING")
+            st.write("The model classifies this site as phishing based on extracted features.")
+        else:
+            st.success("Prediction: LEGITIMATE")
+            st.write("The model classifies this site as legitimate based on extracted features.")
+    with right:
+        probs = model.predict_proba(input_df)[0]
+        st.dataframe(
+            pd.DataFrame({"Class": model.classes_, "Model score": probs}),
+            hide_index=True, width="stretch",
+        )
+        st.caption("Scores are model estimates, not calibrated real-world probabilities.")
+    if compare_all:
+        votes = pd.DataFrame(
+            {"Model": name, "Prediction": m.predict(input_df)[0]} for name, m in models.items()
+        )
+        st.dataframe(votes, hide_index=True, width="stretch")
+    if actual_label is not None:
+        match = "Yes" if prediction == actual_label else "No"
+        st.write(f"**Actual label:** {actual_label}")
+        st.write(f"**Prediction matches this example's label:** {match}")
+    st.caption(
+        "A prediction is not proof that a website is safe or malicious. "
+        "Verify suspicious sites independently."
+    )
+
+
 st.title("🛡️ Explainable Phishing Website Risk Detector")
 st.caption("Academic demonstration using the UCI Phishing Websites dataset")
 st.warning(
-    "This prototype uses pre-extracted website features, not a live URL scanner. "
-    "It is an educational model and must not be treated as a security guarantee."
+    "Paste a URL to extract features and classify it. Some signals (WHOIS age, "
+    "Alexa traffic, PageRank, Google Index) are approximated because those services "
+    "are unavailable. This is an educational prototype — not a security guarantee."
 )
 
 if not BUNDLE_PATH.exists():
@@ -58,18 +95,32 @@ tab_predict, tab_perf, tab_evidence, tab_about = st.tabs(
 
 # ---------------------------------------------------------------- Predict
 with tab_predict:
-    st.subheader("Classify a feature record")
-    st.write(
-        "The UCI dataset contains 30 encoded features with values -1, 0 or 1. "
-        "Pick a held-out example for a quick demo, or enter values manually."
-    )
+    st.subheader("Check a URL")
     source = st.radio(
-        "Input method", ["Use a test-set example", "Enter feature values"], horizontal=True
+        "Input method",
+        ["Paste a URL", "Use a test-set example", "Enter feature values"],
+        horizontal=True,
     )
 
     actual_label = None
     input_values = {}
-    if source == "Use a test-set example":
+    extraction_info = None
+
+    if source == "Paste a URL":
+        url_text = st.text_input(
+            "Website URL",
+            placeholder="https://example.com/login",
+            help="http:// and https:// links only. The app extracts UCI-style features, then runs the trained model.",
+        )
+        fetch_page = st.checkbox(
+            "Fetch page HTML for richer features (anchors, forms, iframes, redirects)",
+            value=True,
+        )
+        st.caption(
+            "With fetching enabled, the app briefly downloads the page HTML (size-limited, timed out). "
+            "Disable it to classify from the URL string alone."
+        )
+    elif source == "Use a test-set example":
         test_df = read_csv(TEST_PATH)
         if test_df is None:
             st.error("Test samples are missing. Run python train.py first.")
@@ -101,38 +152,49 @@ with tab_predict:
     )
     compare_all = st.checkbox("Show what all models predict for this record")
 
-    if st.button("Analyze record", type="primary"):
-        input_df = pd.DataFrame([[input_values[f] for f in feature_names]], columns=feature_names)
-        model = models[selected]
-        prediction = model.predict(input_df)[0]
-        st.divider()
-        left, right = st.columns(2)
-        with left:
-            if prediction == "Phishing":
-                st.error("Prediction: PHISHING")
-                st.write("The model classifies this feature record as phishing.")
-            else:
-                st.success("Prediction: LEGITIMATE")
-                st.write("The model classifies this feature record as legitimate.")
-        with right:
-            probs = model.predict_proba(input_df)[0]
-            st.dataframe(
-                pd.DataFrame({"Class": model.classes_, "Model score": probs}),
-                hide_index=True, width="stretch",
-            )
-            st.caption("Scores are model estimates, not calibrated real-world probabilities.")
-        if compare_all:
-            votes = pd.DataFrame(
-                {"Model": name, "Prediction": m.predict(input_df)[0]} for name, m in models.items()
-            )
-            st.dataframe(votes, hide_index=True, width="stretch")
-        if actual_label is not None:
-            match = "Yes" if prediction == actual_label else "No"
-            st.write(f"**Actual label:** {actual_label}")
-            st.write(f"**Prediction matches this example's label:** {match}")
-        st.caption(
-            "A prediction is not proof that a website is safe or malicious. "
-            "Verify suspicious sites independently."
+    analyze_label = "Analyze URL" if source == "Paste a URL" else "Analyze record"
+    if st.button(analyze_label, type="primary"):
+        if source == "Paste a URL":
+            if not url_text.strip():
+                st.error("Enter a URL first.")
+                st.stop()
+            try:
+                with st.spinner("Extracting features from URL..."):
+                    extraction_info = extract_features(url_text, fetch_page=fetch_page)
+                input_values = extraction_info["features"]
+            except ValueError as exc:
+                st.error(str(exc))
+                st.stop()
+
+            st.write(f"Normalized URL: `{extraction_info['url']}`")
+            if extraction_info["fetched"]:
+                st.success("Page HTML fetched and used for HTML-based features.")
+            elif fetch_page:
+                st.warning(
+                    "Could not fetch page HTML"
+                    + (f": {extraction_info['fetch_error']}" if extraction_info["fetch_error"] else ".")
+                    + " Classification uses URL-string features plus safe defaults."
+                )
+            if extraction_info["approximated"]:
+                with st.expander("Approximated / defaulted features", expanded=False):
+                    st.write(
+                        "These features could not be measured exactly (missing page HTML "
+                        "or retired external APIs) and used a neutral/suspicious default of 0, "
+                        "or a heuristic:"
+                    )
+                    st.code(", ".join(extraction_info["approximated"]))
+
+            with st.expander("Extracted feature vector", expanded=False):
+                st.dataframe(
+                    pd.DataFrame(
+                        [{"Feature": k, "Value": v} for k, v in input_values.items()]
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+
+        render_prediction(
+            models, selected, feature_names, input_values, compare_all, actual_label
         )
 
 # ------------------------------------------------------------ Performance
@@ -206,9 +268,9 @@ with tab_about:
     """)
     st.markdown("**Limitations**")
     st.markdown("""
-    - The dataset contains engineered features, not raw URLs.
+    - Models were trained on UCI's engineered features; URL mode *approximates* those features.
+    - WHOIS age, Alexa traffic, PageRank, Google Index and backlink counts are defaulted when unavailable.
     - Performance may not generalize to current websites or new phishing campaigns.
-    - The app does not fetch websites, open links, or verify live site safety.
     - Feature importance describes model behavior and does not establish causality.
     """)
     st.markdown(
