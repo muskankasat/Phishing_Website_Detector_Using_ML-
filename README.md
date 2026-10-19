@@ -1,36 +1,42 @@
 # Explainable Phishing Website Risk Detector
 
-An academic ML project that compares **8 classifiers** (classic baselines plus XGBoost, LightGBM, CatBoost and an MLP) on the public UCI Phishing Websites dataset, with cross-validation, a literature comparison and an interactive Streamlit app.
+An academic ML project that compares **5 classifiers** (classic baselines plus XGBoost and CatBoost) on the public UCI Phishing Websites dataset, with cross-validation, a literature comparison and an interactive Streamlit app.
 
 ## What this project demonstrates
 - Real-world problem: **cybersecurity** (phishing website detection)
 - Dataset collection, cleaning (duplicate removal) and stratified 80:20 split
-- 8 models, hold-out metrics + 5-fold cross-validation + ROC-AUC + confusion matrices
+- 5 models, hold-out metrics + 5-fold cross-validation + ROC-AUC + confusion matrices
 - Comparison with published results and an experiment showing why published scores look higher (duplicate leakage)
-- Interactive Streamlit UI, tests (pytest), linting (ruff) and GitHub Actions CI
+- Interactive Streamlit UI (paste a URL, use a test example, or enter features), tests (pytest), linting (ruff) and GitHub Actions CI
+
+## Models
+| Group | Models |
+|---|---|
+| Classic | Logistic Regression, Decision Tree, Random Forest |
+| Advanced | XGBoost, CatBoost |
+
+Gradient Boosting, LightGBM and MLP were removed from the active set; older saved bundles are filtered to these five at load time.
 
 ## Important limitation
-The UCI dataset contains **pre-extracted and encoded website features**. This app does not inspect arbitrary pasted URLs or perform live website scanning. Do not describe it as a live URL scanner.
+Training uses the UCI dataset of **pre-extracted and encoded website features**. The Streamlit app can paste a URL and map it to that feature scheme (`url_features.py`), optionally fetching page HTML. Some external signals (e.g. Alexa, PageRank, WHOIS age) are approximated when unavailable — treat live URL scores as heuristic, not as a full production scanner.
 
 ## Results (hold-out test set, 1,170 rows)
 | Model | Type | Accuracy | Precision (Phish) | Recall (Phish) | F1 (Phish) | Macro F1 | ROC-AUC |
 |---|---|---|---|---|---|---|---|
 | CatBoost | Advanced | 0.9513 | 0.9675 | 0.9371 | 0.9521 | 0.9513 | 0.9928 |
-| LightGBM | Advanced | 0.9504 | 0.9659 | 0.9371 | 0.9513 | 0.9504 | 0.9932 |
 | XGBoost | Advanced | 0.9487 | 0.9564 | 0.9437 | 0.9500 | 0.9487 | 0.9937 |
-| Gradient Boosting | Classic | 0.9444 | 0.9560 | 0.9354 | 0.9456 | 0.9444 | 0.9892 |
-| Random Forest | Classic | 0.9402 | 0.9572 | 0.9255 | 0.9411 | 0.9402 | 0.9856 |
-| MLP (Neural Network) | Advanced | 0.9325 | 0.9382 | 0.9305 | 0.9343 | 0.9324 | 0.9861 |
-| Decision Tree | Classic | 0.9162 | 0.9303 | 0.9056 | 0.9178 | 0.9162 | 0.9237 |
+| Random Forest | Classic | 0.9419 | 0.9573 | 0.9288 | 0.9429 | 0.9419 | 0.9854 |
 | Logistic Regression | Classic | 0.9154 | 0.9244 | 0.9106 | 0.9174 | 0.9153 | 0.9777 |
+| Decision Tree | Classic | 0.9120 | 0.9267 | 0.9007 | 0.9135 | 0.9119 | 0.9193 |
 
-5-fold CV and the full analysis are in `REPORT.md`. The top four models are statistically close; do not over-interpret small differences.
+5-fold CV and the full analysis are in `REPORT.md`. The top models are statistically close; do not over-interpret small differences.
 
 ## Project layout
 ```
 train.py                 data loading, cleaning, training, evaluation, CV, figures
 phishing_models.py       model definitions shared by train.py and app.py
-app.py                   Streamlit UI (4 tabs)
+url_features.py          URL → UCI-style feature extraction for the app
+app.py                   Streamlit UI (Predict, Performance, Literature, About)
 experiments/duplicate_effect.py   duplicate-leakage experiment
 tests/test_pipeline.py   pytest smoke tests
 data/raw/                offline copy of the dataset (committed)
@@ -54,6 +60,16 @@ If PowerShell blocks activation, run the commands in Command Prompt or use:
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe train.py
 .\.venv\Scripts\python.exe -m streamlit run app.py
+```
+
+### Linux / macOS
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+python train.py
+streamlit run app.py
 ```
 
 ## Quality checks
