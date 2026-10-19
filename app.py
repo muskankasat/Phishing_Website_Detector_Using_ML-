@@ -10,6 +10,7 @@ import pandas as pd
 import streamlit as st
 
 import phishing_models  # noqa: F401  (required so joblib can unpickle)
+from phishing_models import filter_models
 from url_features import extract_features
 
 ROOT = Path(__file__).resolve().parent
@@ -494,7 +495,7 @@ st.markdown(
 st.markdown(
     """
 <p class="hero-sub">
-  Paste a URL. Eight classifiers —
+  Paste a URL. Five classifiers —
   <span class="accent-yellow">CatBoost</span> to
   <span class="accent-emerald">XGBoost</span> —
   score features from the link.
@@ -511,7 +512,8 @@ if not BUNDLE_PATH.exists():
     st.stop()
 
 bundle = load_bundle()
-models = bundle["models"]
+# Drop removed models if an older bundle still contains them.
+models = filter_models(bundle["models"])
 feature_names = bundle["feature_names"]
 model_names = list(models)
 
@@ -836,9 +838,8 @@ with tab_about:
        balance.
     3. Remove duplicates, then split into training and test data
        with stratification.
-    4. Train 8 models: Logistic Regression, Decision Tree, Random
-       Forest, Gradient Boosting, XGBoost, LightGBM, CatBoost and
-       an MLP neural network.
+    4. Train 5 models: Logistic Regression, Decision Tree, Random
+       Forest, XGBoost and CatBoost.
     5. Compare on the same held-out test set and with 5-fold
        cross-validation.
     6. Inspect confusion matrices and Random Forest feature
