@@ -26,7 +26,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Connect4-inspired shell: pure black, bold type, yellow/emerald accents.
 st.markdown(
     """
 <style>
@@ -34,13 +33,128 @@ st.markdown(
 @import url("https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-mono/style.min.css");
 
 html, body, [data-testid="stAppViewContainer"],
-[data-testid="stApp"], .stApp {
-  background: #000000 !important;
+[data-testid="stApp"], .stApp,
+[data-testid="stAppViewContainer"] > .main,
+section.main, [data-testid="stVerticalBlockBorderWrapper"] {
+  background: transparent !important;
   color: #ffffff !important;
   font-family: "Geist Sans", "Geist", "Segoe UI", sans-serif !important;
 }
 
-/* Make all UI text selectable / copyable */
+/* Fixed black canvas under the aurora */
+[data-testid="stAppViewContainer"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background: #000000;
+  pointer-events: none;
+}
+
+/* Dynamic B&W aurora light */
+.aurora-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  background: #000;
+}
+.aurora-bg .blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  will-change: transform, opacity;
+  mix-blend-mode: screen;
+}
+.aurora-bg .b1 {
+  width: 60vw; height: 60vw;
+  left: -12%; top: -18%;
+  opacity: 0.55;
+  background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, transparent 68%);
+  animation: drift1 14s ease-in-out infinite alternate,
+             pulse1 8s ease-in-out infinite;
+}
+.aurora-bg .b2 {
+  width: 48vw; height: 48vw;
+  right: -10%; top: 18%;
+  opacity: 0.42;
+  background: radial-gradient(circle, rgba(220,220,220,0.9) 0%, transparent 70%);
+  animation: drift2 18s ease-in-out infinite alternate,
+             pulse2 10s ease-in-out infinite;
+}
+.aurora-bg .b3 {
+  width: 55vw; height: 55vw;
+  left: 18%; bottom: -22%;
+  opacity: 0.32;
+  background: radial-gradient(circle, rgba(255,255,255,0.85) 0%, transparent 70%);
+  animation: drift3 22s ease-in-out infinite alternate,
+             pulse1 12s ease-in-out infinite reverse;
+}
+.aurora-bg .b4 {
+  width: 35vw; height: 35vw;
+  left: 40%; top: 35%;
+  opacity: 0.22;
+  background: radial-gradient(circle, rgba(180,180,180,0.85) 0%, transparent 72%);
+  animation: drift4 16s ease-in-out infinite alternate,
+             pulse2 9s ease-in-out infinite;
+}
+.aurora-bg .ribbon {
+  position: absolute;
+  width: 140%;
+  height: 45%;
+  left: -20%;
+  top: 20%;
+  opacity: 0.18;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255,255,255,0.35) 25%,
+    rgba(200,200,200,0.15) 45%,
+    rgba(255,255,255,0.4) 60%,
+    transparent 85%
+  );
+  filter: blur(40px);
+  transform: rotate(-8deg);
+  animation: ribbon 20s ease-in-out infinite alternate;
+}
+.aurora-bg .veil {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 55% at 50% -5%,
+      rgba(255,255,255,0.10), transparent 58%),
+    linear-gradient(180deg, rgba(0,0,0,0.2), rgba(0,0,0,0.82));
+}
+@keyframes drift1 {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(14%, 20%) scale(1.18); }
+}
+@keyframes drift2 {
+  0%   { transform: translate(0, 0) scale(1.05); }
+  100% { transform: translate(-20%, -12%) scale(1.22); }
+}
+@keyframes drift3 {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-12%, -18%) scale(1.28); }
+}
+@keyframes drift4 {
+  0%   { transform: translate(0, 0) scale(0.95); }
+  100% { transform: translate(10%, -14%) scale(1.2); }
+}
+@keyframes pulse1 {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 0.7; }
+}
+@keyframes pulse2 {
+  0%, 100% { opacity: 0.28; }
+  50%      { opacity: 0.5; }
+}
+@keyframes ribbon {
+  0%   { transform: rotate(-8deg) translateX(-4%); opacity: 0.12; }
+  100% { transform: rotate(-4deg) translateX(6%); opacity: 0.28; }
+}
+
 html, body, .stApp, .stApp *, p, span, label, h1, h2, h3, h4,
 h5, h6, li, td, th, code, pre, div, [data-testid="stMarkdownContainer"],
 [data-testid="stText"], [data-testid="stCaptionContainer"] {
@@ -50,72 +164,51 @@ h5, h6, li, td, th, code, pre, div, [data-testid="stMarkdownContainer"],
   user-select: text !important;
   cursor: text;
 }
-
 button, [role="button"], a, input, textarea, select,
 [data-testid="stCheckbox"], [data-baseweb="tab"] {
   cursor: pointer !important;
 }
 
-/* Subtle grid overlay like the reference landing page */
-[data-testid="stAppViewContainer"]::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  opacity: 0.40;
-  background-image:
-    linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px),
-    radial-gradient(ellipse 80% 50% at 50% -10%,
-      rgba(250,200,0,0.12), transparent 55%);
-  background-size: 48px 48px, 48px 48px, 100% 100%;
-}
-
-[data-testid="stHeader"] {
-  background: transparent !important;
-}
+[data-testid="stHeader"] { background: transparent !important; }
 [data-testid="stToolbar"], #MainMenu,
 footer, [data-testid="stDecoration"] {
-  visibility: hidden;
-  height: 0;
+  visibility: hidden; height: 0;
 }
 
 .block-container {
   position: relative;
   z-index: 1;
-  max-width: 980px !important;
-  padding-top: 2.5rem !important;
-  padding-bottom: 4rem !important;
+  max-width: 920px !important;
+  padding-top: 1.25rem !important;
+  padding-bottom: 3rem !important;
 }
 
-/* Hero */
 .hero-kicker {
   color: rgba(255,255,255,0.50);
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.4em;
   text-transform: uppercase;
-  margin-bottom: 1.25rem;
+  margin: 0 0 0.65rem 0;
 }
 .hero-title {
-  font-size: clamp(3rem, 9vw, 6.5rem);
+  font-size: clamp(2.4rem, 7vw, 4.25rem);
   font-weight: 700;
   letter-spacing: -0.05em;
-  line-height: 0.88;
+  line-height: 0.9;
   color: #ffffff;
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 0.85rem 0;
 }
 .hero-sub {
-  color: rgba(255,255,255,0.90);
-  font-size: 1.05rem;
+  color: rgba(255,255,255,0.72);
+  font-size: 0.95rem;
   font-weight: 500;
-  line-height: 1.65;
-  max-width: 34rem;
-  margin-bottom: 0.25rem;
+  line-height: 1.55;
+  max-width: 32rem;
+  margin: 0 0 1.35rem 0;
 }
-.hero-sub .accent-yellow { color: rgba(250, 200, 0, 0.75); }
-.hero-sub .accent-emerald { color: rgba(0, 210, 148, 0.70); }
+.hero-sub .accent-yellow { color: rgba(250, 200, 0, 0.85); }
+.hero-sub .accent-emerald { color: rgba(0, 210, 148, 0.75); }
 
 .section-label {
   color: rgba(255,255,255,0.50);
@@ -123,23 +216,20 @@ footer, [data-testid="stDecoration"] {
   font-weight: 500;
   letter-spacing: 0.4em;
   text-transform: uppercase;
-  margin: 2.5rem 0 1rem 0;
+  margin: 0.5rem 0 0.75rem 0;
 }
 
-.note-box {
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
-  border-radius: 1rem;
-  padding: 1rem 1.15rem;
-  color: rgba(255,255,255,0.55);
-  font-size: 0.9rem;
-  font-weight: 500;
-  line-height: 1.55;
-  margin: 1.25rem 0 1.75rem 0;
+/* Keep URL + model controls on one visual row */
+div[data-testid="stHorizontalBlock"] {
+  align-items: end !important;
+  gap: 0.75rem !important;
 }
-.note-box strong { color: rgba(255,255,255,0.85); }
+div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-end !important;
+}
 
-/* Tabs */
 [data-baseweb="tab-list"] {
   gap: 0.35rem;
   background: transparent !important;
@@ -149,7 +239,6 @@ footer, [data-testid="stDecoration"] {
   background: transparent !important;
   color: rgba(255,255,255,0.45) !important;
   font-weight: 500 !important;
-  letter-spacing: 0.02em;
 }
 [data-baseweb="tab"][aria-selected="true"] {
   color: #ffffff !important;
@@ -160,33 +249,47 @@ footer, [data-testid="stDecoration"] {
   background-color: #fac800 !important;
 }
 
-/* Inputs / controls */
 .stTextInput input, .stSelectbox [data-baseweb="select"] > div,
 .stNumberInput input, textarea {
-  background: rgba(255,255,255,0.04) !important;
-  border: 1px solid rgba(255,255,255,0.10) !important;
+  background: rgba(0,0,0,0.45) !important;
+  border: 1px solid rgba(255,255,255,0.18) !important;
   border-radius: 999px !important;
   color: #fff !important;
+  backdrop-filter: blur(8px);
+  min-height: 2.75rem !important;
 }
 .stTextInput input:focus {
-  border-color: rgba(250,200,0,0.55) !important;
-  box-shadow: 0 0 0 1px rgba(250,200,0,0.25) !important;
+  border-color: rgba(255,255,255,0.65) !important;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.35) !important;
 }
 
-/* Primary button → white pill like Connect4 "Play" */
-.stButton > button[kind="primary"],
-.stButton > button {
-  background: #ffffff !important;
-  color: #000000 !important;
-  border: none !important;
+/* Analyze CTA — flat, dark text, no glow */
+div[data-testid="stButton"] > button[kind="primary"],
+div.analyze-wrap button {
+  background: linear-gradient(180deg, #ffffff 0%, #e8e8e8 100%) !important;
+  color: #111111 !important;
+  border: 1px solid rgba(0,0,0,0.18) !important;
   border-radius: 999px !important;
-  font-weight: 600 !important;
-  padding: 0.65rem 1.75rem !important;
-  transition: background 0.15s ease, transform 0.15s ease;
+  font-weight: 700 !important;
+  font-size: 1.05rem !important;
+  letter-spacing: 0.02em !important;
+  padding: 0.9rem 2.4rem !important;
+  min-height: 3.1rem !important;
+  width: 100% !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  transition: transform 0.15s ease, background 0.15s ease !important;
 }
-.stButton > button:hover {
-  background: rgba(255,255,255,0.88) !important;
-  transform: translateY(-1px);
+div[data-testid="stButton"] > button[kind="primary"] p,
+div[data-testid="stButton"] > button[kind="primary"] span,
+div[data-testid="stButton"] > button[kind="primary"] div {
+  color: #111111 !important;
+  text-shadow: none !important;
+}
+div[data-testid="stButton"] > button[kind="primary"]:hover {
+  transform: translateY(-1px) !important;
+  background: linear-gradient(180deg, #f5f5f5 0%, #dddddd 100%) !important;
+  box-shadow: none !important;
 }
 
 h2, h3, .stSubheader {
@@ -202,41 +305,69 @@ p, label, .stMarkdown, .stCaption {
   color: rgba(255,255,255,0.40) !important;
 }
 
-/* Alerts */
 [data-testid="stAlert"] {
-  background: rgba(255,255,255,0.04) !important;
-  border: 1px solid rgba(255,255,255,0.08) !important;
+  background: rgba(0,0,0,0.45) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
   border-radius: 1rem !important;
   color: rgba(255,255,255,0.85) !important;
+  backdrop-filter: blur(10px);
 }
 
-/* Dataframes / code — keep copyable */
 [data-testid="stDataFrame"], pre, code, .stCodeBlock {
   border-radius: 0.75rem !important;
   -webkit-user-select: text !important;
   user-select: text !important;
 }
 
-.mono-meta {
-  font-family: "Geist Mono", ui-monospace, monospace;
-  color: rgba(255,255,255,0.45);
-  font-size: 0.75rem;
-  letter-spacing: 0.02em;
+.result-panel {
+  margin-top: 1.1rem;
+  padding: 1.25rem 1.35rem;
+  border-radius: 1.1rem;
+  backdrop-filter: blur(14px);
 }
-
+.result-panel.panel-phish {
+  border: 1px solid rgba(255,101,104,0.45);
+  background: rgba(255, 40, 55, 0.14);
+  box-shadow: 0 0 28px rgba(255, 60, 70, 0.12);
+}
+.result-panel.panel-legit {
+  border: 1px solid rgba(0,210,148,0.45);
+  background: rgba(0, 180, 120, 0.14);
+  box-shadow: 0 0 28px rgba(0, 210, 148, 0.12);
+}
 .pred-phish {
-  color: #ff6568;
-  font-size: 1.75rem;
+  color: #ff4d52 !important;
+  font-size: 1.85rem;
   font-weight: 700;
   letter-spacing: -0.03em;
+  margin: 0 0 0.35rem 0;
+  text-shadow: 0 0 18px rgba(255, 80, 90, 0.35);
 }
 .pred-legit {
-  color: #00d294;
-  font-size: 1.75rem;
+  color: #00e0a0 !important;
+  font-size: 1.85rem;
   font-weight: 700;
   letter-spacing: -0.03em;
+  margin: 0 0 0.35rem 0;
+  text-shadow: 0 0 18px rgba(0, 210, 148, 0.35);
+}
+.tag-legit {
+  color: #00e0a0 !important;
+  font-weight: 700 !important;
+}
+.tag-phish {
+  color: #ff4d52 !important;
+  font-weight: 700 !important;
 }
 </style>
+<div class="aurora-bg" aria-hidden="true">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+  <div class="blob b4"></div>
+  <div class="ribbon"></div>
+  <div class="veil"></div>
+</div>
 """,
     unsafe_allow_html=True,
 )
@@ -262,6 +393,7 @@ def render_prediction(
     models, selected, feature_names, input_values, compare_all,
     actual_label=None,
 ):
+    """Result badge + class/score table directly under Analyze."""
     input_df = pd.DataFrame(
         [[input_values[f] for f in feature_names]],
         columns=feature_names,
@@ -274,51 +406,39 @@ def render_prediction(
         for cls, prob in zip(model.classes_, probs)
     }
 
+    is_phish = prediction == "Phishing"
+    css = "pred-phish" if is_phish else "pred-legit"
+    panel = "panel-phish" if is_phish else "panel-legit"
+    tag = "tag-phish" if is_phish else "tag-legit"
+    blurb = (
+        'The model classifies this site as '
+        f'<span class="{tag}">{prediction.lower()}</span> '
+        "based on extracted features."
+    )
     st.markdown(
-        '<p class="section-label">Result</p>',
+        f"""
+<div class="result-panel {panel}">
+  <p class="{css}">{prediction.upper()}</p>
+  <p style="color:rgba(255,255,255,0.55);margin:0 0 0.35rem 0;
+     font-weight:500;">{blurb}</p>
+</div>
+""",
         unsafe_allow_html=True,
     )
-    left, right = st.columns(2)
-    with left:
-        if prediction == "Phishing":
-            st.markdown(
-                '<p class="pred-phish">PHISHING</p>',
-                unsafe_allow_html=True,
-            )
-            st.write(
-                "The model classifies this site as phishing "
-                "based on extracted features."
-            )
-        else:
-            st.markdown(
-                '<p class="pred-legit">LEGITIMATE</p>',
-                unsafe_allow_html=True,
-            )
-            st.write(
-                "The model classifies this site as legitimate "
-                "based on extracted features."
-            )
-        # Copyable summary block
-        summary = (
-            f"prediction: {prediction}\n"
-            f"model: {selected}\n"
-            + "\n".join(
-                f"{cls}: {score_map[cls]:.4f}" for cls in score_map
-            )
-        )
-        st.code(summary, language="text")
-    with right:
-        st.dataframe(
-            pd.DataFrame(
-                {"Class": model.classes_, "Model score": probs}
-            ),
-            hide_index=True,
-            width="stretch",
-        )
-        st.caption(
-            "Scores are model estimates, not calibrated "
-            "real-world probabilities. Select / copy freely."
-        )
+    st.dataframe(
+        pd.DataFrame(
+            {"Class": model.classes_, "Model score": probs}
+        ),
+        hide_index=True,
+        width="stretch",
+    )
+    summary = (
+        f"prediction: {prediction}\n"
+        f"model: {selected}\n"
+        + "\n".join(f"{cls}: {score_map[cls]:.4f}" for cls in score_map)
+    )
+    st.code(summary, language="text")
+
     if compare_all:
         votes = pd.DataFrame(
             {
@@ -328,16 +448,33 @@ def render_prediction(
             for name, m in models.items()
         )
         st.dataframe(votes, hide_index=True, width="stretch")
-        vote_text = "\n".join(
-            f"{row.Model}: {row.Prediction}"
-            for row in votes.itertuples()
+        vote_lines = []
+        for row in votes.itertuples():
+            vote_tag = (
+                "tag-phish"
+                if row.Prediction == "Phishing"
+                else "tag-legit"
+            )
+            vote_lines.append(
+                f'{row.Model}: '
+                f'<span class="{vote_tag}">{row.Prediction}</span>'
+            )
+        st.markdown(
+            "<br>".join(vote_lines),
+            unsafe_allow_html=True,
         )
-        st.code(vote_text, language="text")
     if actual_label is not None:
         match = "Yes" if prediction == actual_label else "No"
-        st.code(
-            f"actual_label: {actual_label}\nmatches: {match}",
-            language="text",
+        label_tag = (
+            "tag-phish"
+            if actual_label == "Phishing"
+            else "tag-legit"
+        )
+        st.markdown(
+            f'actual_label: '
+            f'<span class="{label_tag}">{actual_label}</span> · '
+            f"matches: {match}",
+            unsafe_allow_html=True,
         )
     st.caption(
         "A prediction is not proof that a website is safe or malicious. "
@@ -351,7 +488,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 st.markdown(
-    '<h1 class="hero-title">Phishing<br/>Detector</h1>',
+    '<h1 class="hero-title">Phishing Detector</h1>',
     unsafe_allow_html=True,
 )
 st.markdown(
@@ -360,19 +497,8 @@ st.markdown(
   Paste a URL. Eight classifiers —
   <span class="accent-yellow">CatBoost</span> to
   <span class="accent-emerald">XGBoost</span> —
-  score UCI-style features extracted from the link.
-  Educational prototype, not a security guarantee.
+  score features from the link.
 </p>
-""",
-    unsafe_allow_html=True,
-)
-st.markdown(
-    """
-<div class="note-box">
-  <strong>Note.</strong> Some live signals (WHOIS age, Alexa,
-  PageRank, Google Index) are approximated. Text across this app
-  is selectable — use the copy button on code blocks for results.
-</div>
 """,
     unsafe_allow_html=True,
 )
@@ -387,51 +513,58 @@ if not BUNDLE_PATH.exists():
 bundle = load_bundle()
 models = bundle["models"]
 feature_names = bundle["feature_names"]
+model_names = list(models)
 
 tab_predict, tab_perf, tab_evidence, tab_about = st.tabs(
-    [
-        "Predict",
-        "Performance",
-        "Literature",
-        "About",
-    ]
+    ["Predict", "Performance", "Literature", "About"]
 )
 
 # ---------------------------------------------------------------- Predict
 with tab_predict:
-    st.markdown(
-        '<p class="section-label">Check a URL</p>',
-        unsafe_allow_html=True,
-    )
-    st.subheader("Classify a website")
     source = st.radio(
         "Input method",
         ["Paste a URL", "Use a test-set example", "Enter feature values"],
         horizontal=True,
+        label_visibility="collapsed",
     )
 
     actual_label = None
     input_values = {}
     extraction_info = None
+    url_text = ""
 
     if source == "Paste a URL":
-        url_text = st.text_input(
-            "Website URL",
-            placeholder="https://example.com/login",
-            help=(
-                "http:// and https:// links only. The app extracts "
-                "UCI-style features, then runs the trained model."
-            ),
+        st.markdown(
+            '<p class="section-label">URL &amp; model</p>',
+            unsafe_allow_html=True,
         )
+        url_col, model_col = st.columns([2.6, 1], gap="small")
+        with url_col:
+            st.caption("Website URL")
+            url_text = st.text_input(
+                "Website URL",
+                placeholder="https://example.com/login",
+                label_visibility="collapsed",
+                help=(
+                    "http:// and https:// only. Extracts UCI-style "
+                    "features, then runs the trained model."
+                ),
+            )
+        with model_col:
+            st.caption("Model")
+            selected = st.selectbox(
+                "Model",
+                options=model_names,
+                index=(
+                    model_names.index(DEFAULT_MODEL)
+                    if DEFAULT_MODEL in model_names
+                    else 0
+                ),
+                label_visibility="collapsed",
+            )
         fetch_page = st.checkbox(
-            "Fetch page HTML for richer features "
-            "(anchors, forms, iframes, redirects)",
+            "Fetch page HTML for richer features",
             value=True,
-        )
-        st.caption(
-            "With fetching enabled, the app briefly downloads the page "
-            "HTML (size-limited, timed out). Disable it to classify "
-            "from the URL string alone."
         )
     elif source == "Use a test-set example":
         test_df = read_csv(TEST_PATH)
@@ -440,48 +573,86 @@ with tab_predict:
                 "Test samples are missing. Run python train.py first."
             )
             st.stop()
-        chosen = st.selectbox(
-            "Choose a test example",
-            options=list(range(min(len(test_df), 100))),
-            format_func=lambda i: (
-                f"Example {i + 1} "
-                f"(actual: {test_df.iloc[i]['label']})"
-            ),
+        st.markdown(
+            '<p class="section-label">Example &amp; model</p>',
+            unsafe_allow_html=True,
         )
-        sample = test_df.iloc[chosen]
-        input_values = {f: int(sample[f]) for f in feature_names}
-        actual_label = str(sample["label"])
-        st.info(
-            f"Actual dataset label for this example: **{actual_label}**"
-        )
-    else:
-        with st.expander(
-            "Feature inputs (encoded values)", expanded=True
-        ):
-            st.caption(
-                "Values are -1, 0 or 1. See the UCI feature "
-                "documentation for meanings."
+        ex_col, model_col = st.columns([2.6, 1], gap="small")
+        with ex_col:
+            st.caption("Test example")
+            chosen = st.selectbox(
+                "Choose a test example",
+                options=list(range(min(len(test_df), 100))),
+                format_func=lambda i: (
+                    f"Example {i + 1} "
+                    f"(actual: {test_df.iloc[i]['label']})"
+                ),
+                label_visibility="collapsed",
             )
-            cols = st.columns(3)
-            for idx, feature in enumerate(feature_names):
-                with cols[idx % 3]:
-                    input_values[feature] = st.selectbox(
-                        feature,
-                        options=[-1, 0, 1],
-                        index=2,
-                        key=f"feature_{feature}",
-                    )
+            sample = test_df.iloc[chosen]
+            input_values = {
+                f: int(sample[f]) for f in feature_names
+            }
+            actual_label = str(sample["label"])
+            label_tag = (
+                "tag-phish"
+                if actual_label == "Phishing"
+                else "tag-legit"
+            )
+            st.markdown(
+                f'Actual dataset label: '
+                f'<span class="{label_tag}">{actual_label}</span>',
+                unsafe_allow_html=True,
+            )
+        with model_col:
+            st.caption("Model")
+            selected = st.selectbox(
+                "Model",
+                options=model_names,
+                index=(
+                    model_names.index(DEFAULT_MODEL)
+                    if DEFAULT_MODEL in model_names
+                    else 0
+                ),
+                key="model_test",
+                label_visibility="collapsed",
+            )
+        fetch_page = False
+    else:
+        st.markdown(
+            '<p class="section-label">Features &amp; model</p>',
+            unsafe_allow_html=True,
+        )
+        feat_col, model_col = st.columns([2.6, 1], gap="small")
+        with feat_col:
+            with st.expander(
+                "Feature inputs (encoded values)", expanded=True
+            ):
+                st.caption("Values are -1, 0 or 1.")
+                cols = st.columns(3)
+                for idx, feature in enumerate(feature_names):
+                    with cols[idx % 3]:
+                        input_values[feature] = st.selectbox(
+                            feature,
+                            options=[-1, 0, 1],
+                            index=2,
+                            key=f"feature_{feature}",
+                        )
+        with model_col:
+            st.caption("Model")
+            selected = st.selectbox(
+                "Model",
+                options=model_names,
+                index=(
+                    model_names.index(DEFAULT_MODEL)
+                    if DEFAULT_MODEL in model_names
+                    else 0
+                ),
+                key="model_manual",
+                label_visibility="collapsed",
+            )
+        fetch_page = False
 
-    model_names = list(models)
-    selected = st.selectbox(
-        "Model",
-        options=model_names,
-        index=(
-            model_names.index(DEFAULT_MODEL)
-            if DEFAULT_MODEL in model_names
-            else 0
-        ),
-    )
     compare_all = st.checkbox(
         "Show what all models predict for this record"
     )
@@ -489,7 +660,9 @@ with tab_predict:
     analyze_label = (
         "Analyze URL" if source == "Paste a URL" else "Analyze record"
     )
-    if st.button(analyze_label, type="primary"):
+    clicked = st.button(analyze_label, type="primary")
+
+    if clicked:
         if source == "Paste a URL":
             if not url_text.strip():
                 st.error("Enter a URL first.")
@@ -504,65 +677,51 @@ with tab_predict:
                 st.error(str(exc))
                 st.stop()
 
-            st.code(
-                f"normalized_url: {extraction_info['url']}",
-                language="text",
+            # Primary result block sits immediately under Analyze
+            render_prediction(
+                models,
+                selected,
+                feature_names,
+                input_values,
+                compare_all,
+                actual_label,
             )
-            if extraction_info["fetched"]:
-                st.success(
-                    "Page HTML fetched and used for HTML-based features."
+
+            with st.expander("Extraction details", expanded=False):
+                st.code(
+                    f"normalized_url: {extraction_info['url']}",
+                    language="text",
                 )
-            elif fetch_page:
-                err = extraction_info["fetch_error"]
-                detail = f": {err}" if err else "."
-                st.warning(
-                    "Could not fetch page HTML"
-                    + detail
-                    + " Classification uses URL-string features "
-                    "plus safe defaults."
-                )
-            if extraction_info["approximated"]:
-                with st.expander(
-                    "Approximated / defaulted features",
-                    expanded=False,
-                ):
-                    st.write(
-                        "These features could not be measured exactly "
-                        "(missing page HTML or retired external APIs) "
-                        "and used a neutral/suspicious default of 0, "
-                        "or a heuristic:"
+                if extraction_info["fetched"]:
+                    st.success(
+                        "Page HTML fetched for HTML-based features."
                     )
+                elif fetch_page:
+                    err = extraction_info["fetch_error"]
+                    detail = f": {err}" if err else "."
+                    st.warning(
+                        "Could not fetch page HTML"
+                        + detail
+                        + " Used URL-string features + defaults."
+                    )
+                if extraction_info["approximated"]:
                     st.code(
                         ", ".join(extraction_info["approximated"]),
                         language="text",
                     )
-
-            with st.expander(
-                "Extracted feature vector", expanded=False
-            ):
                 feat_lines = "\n".join(
                     f"{k}={v}" for k, v in input_values.items()
                 )
                 st.code(feat_lines, language="text")
-                st.dataframe(
-                    pd.DataFrame(
-                        [
-                            {"Feature": k, "Value": v}
-                            for k, v in input_values.items()
-                        ]
-                    ),
-                    hide_index=True,
-                    width="stretch",
-                )
-
-        render_prediction(
-            models,
-            selected,
-            feature_names,
-            input_values,
-            compare_all,
-            actual_label,
-        )
+        else:
+            render_prediction(
+                models,
+                selected,
+                feature_names,
+                input_values,
+                compare_all,
+                actual_label,
+            )
 
 # ------------------------------------------------------------ Performance
 with tab_perf:
