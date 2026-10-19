@@ -1,9 +1,9 @@
 """
-Train and evaluate four classifiers on the UCI Phishing Websites dataset.
+Train and evaluate five classifiers on the UCI Phishing Websites dataset.
 Run: python train.py
 
 The script downloads the dataset through ucimlrepo, performs basic checks,
-uses a stratified hold-out split, evaluates four models, and saves outputs.
+uses a stratified hold-out split, evaluates the models, and saves outputs.
 """
 import json
 import time

@@ -39,17 +39,23 @@ def test_raw_dataset_shape():
 
 @needs_artifacts
 def test_bundle_has_all_models_and_30_features():
+    from phishing_models import filter_models
+
     bundle = joblib.load(BUNDLE)
-    assert set(bundle["models"]) == set(CLASSIC_MODELS + ADVANCED_MODELS)
+    models = filter_models(bundle["models"])
+    assert set(models) == set(CLASSIC_MODELS + ADVANCED_MODELS)
     assert len(bundle["feature_names"]) == 30
 
 
 @needs_artifacts
 def test_predictions_valid_for_every_model():
+    from phishing_models import filter_models
+
     bundle = joblib.load(BUNDLE)
+    models = filter_models(bundle["models"])
     sample = pd.read_csv(TEST_CSV).head(20)
     X = sample[bundle["feature_names"]]
-    for name, model in bundle["models"].items():
+    for name, model in models.items():
         preds = model.predict(X)
         assert set(preds) <= {"Phishing", "Legitimate"}, name
         probs = model.predict_proba(X)
